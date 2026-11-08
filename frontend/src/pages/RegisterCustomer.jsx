@@ -3,6 +3,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, Mail, Lock, Phone, MapPin, AlertCircle, ArrowRight } from 'lucide-react';
 
+const formatApiError = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(formatApiError).join(' ');
+  }
+  if (value && typeof value === 'object') {
+    return Object.entries(value)
+      .map(([field, detail]) => `${field}: ${formatApiError(detail)}`)
+      .join('; ');
+  }
+  return String(value);
+};
+
 const RegisterCustomer = () => {
   const { registerCustomer } = useAuth();
   const navigate = useNavigate();
@@ -43,10 +55,12 @@ const RegisterCustomer = () => {
     } catch (err) {
       console.error(err);
       const data = err.response?.data;
-      if (typeof data === 'object') {
-        const firstKey = Object.keys(data)[0];
-        const val = data[firstKey];
-        setError(Array.isArray(val) ? `${firstKey}: ${val[0]}` : String(val));
+      if (data && typeof data === 'object') {
+        setError(formatApiError(data));
+      } else if (data) {
+        setError(String(data));
+      } else if (err.request) {
+        setError('Could not reach the server. Check the API URL and CORS settings.');
       } else {
         setError('Registration failed. Please check your inputs and try again.');
       }
